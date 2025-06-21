@@ -1,0 +1,17 @@
+<html><head>
+<script>
+const origin = "https://app.atera.com";
+
+window.location.gimme = async function(url) {
+	let res = await originalFetch("http://127.0.0.1:65000/location?url=" + encodeURIComponent(url));
+	window.location.assign((await res.text()).replace("https://auth.atera.com", document.location.origin));
+};
+
+callback = async function() {
+	await configureClient();	
+	await auth0.loginWithRedirect({redirect_uri: "https://app.atera.com/auth0.html", redirectMethod: "gimme"});
+}
+</script>
+
+<script defer src="/get_html.js"></script>
+</head></html>
